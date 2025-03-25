@@ -1,0 +1,16 @@
+jupyterlab
+dotenv
+numpy
+matplotlib
+torch
+transformers
+huggingface_hub[cli]
+esm 
+# flash-attn
+py3Dmol
+dna-features-viewer
+rcsb-api
+
+# rcsbsearchapi
+# scikit-learn
+# umap-learn

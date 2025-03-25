@@ -1,7 +1,7 @@
 data/pdb_seqres.txt
 data/pdb_sequences.csv
 data/interpro_29026_to_keywords_58641.csv
-data/esm_embeddings.pkl 
+data/esm_embeddings/* 
 
 .DS_Store
 

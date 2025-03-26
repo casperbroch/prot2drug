@@ -2,6 +2,9 @@ data/pdb_seqres.txt
 data/pdb_sequences.csv
 data/interpro_29026_to_keywords_58641.csv
 data/esm_embeddings/* 
+data/*.p
+data/pdb_protein_ligand_train.p 
+data/pdb_protein_ligand_test.p 
 
 .DS_Store
 

@@ -5,6 +5,7 @@ data/esm_embeddings/*
 data/*.p
 data/pdb_protein_ligand_train.p 
 data/pdb_protein_ligand_test.p 
+/data/
 
 .DS_Store
 

@@ -10,6 +10,7 @@ esm
 py3Dmol
 dna-features-viewer
 rcsb-api
+git+https://github.com/casperbroch/synformer.git 
 
 # rcsbsearchapi
 # scikit-learn

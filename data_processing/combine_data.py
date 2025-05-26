@@ -5,16 +5,14 @@ import numpy as np
 import pandas as pd
 import torch
 
-from papyrus_eda import analyse_protein_distribution
-
-PATHWAY_PATH = r"data\synthetic_pathways"
+PATHWAY_PATH = r"../data/synthetic_pathways"
 FILTERED_SMILES_PATH = os.path.join(PATHWAY_PATH, "filtered_pathways.pth")
 
-PROTEIN_PATH = r"data\protein_embeddings"
+PROTEIN_PATH = r"../data/protein_embeddings"
 FILTERED_PROTEIN_PATH1 = os.path.join(PROTEIN_PATH, "usefull_embeddings.pth")
 FILTERED_PROTEIN_PATH2 = os.path.join(PROTEIN_PATH, "embeddings_selection_float16.pth")
 
-PAPYRUS_PATH = r"data/papyrus"
+PAPYRUS_PATH = r"../data/papyrus"
 PAPYRUS_SMILES = os.path.join(PAPYRUS_PATH, "05.6++_combined_set_without_stereochemistry.tsv.xz")
 PAPYRUS_PROTEIN = os.path.join(PAPYRUS_PATH, "05.6_combined_set_protein_targets.tsv.xz")
 PAPYRUS_FILTERED = os.path.join(PAPYRUS_PATH, "papyrus_selection.csv")
@@ -143,27 +141,27 @@ def filter_proteins():
     smiles = smiles_dct.keys()
     pap_smiles = pap_smiles[pap_smiles["SMILES"].isin(smiles)]
     print(pap_smiles.shape)
-    """125411"""
+    """125411 - 185792"""
     target_ids = pap_smiles["target_id"].unique()
     print(target_ids.shape)
-    """2590"""
+    """2590 - 3006"""
 
     # Filter and store the new protein dict
     protein_dct = torch.load(FILTERED_PROTEIN_PATH1)
     print(len(protein_dct))
     """5074"""
-    selected_protein_dct = {k: v.half() for k, v in protein_dct.items() if (k in target_ids) and (v.shape[0] <= 2002)}
+    selected_protein_dct = {k: v.half() for k, v in protein_dct.items() if (v.shape[0] <= 2002)}  # (k in target_ids) and (v.shape[0] <= 2002)}
     print(len(selected_protein_dct))
-    """2537"""
+    """2537 - 2945 -- 4973"""
     torch.save(selected_protein_dct, FILTERED_PROTEIN_PATH2)
 
     # Analyse protein length distribution
     pap_protein = pd.read_csv(PAPYRUS_PROTEIN, sep="\t")
     pap_protein = pap_protein[pap_protein["target_id"].isin(target_ids)]
     print(pap_protein["Length"].min(), pap_protein["Length"].max())
-    print((pap_protein["Length"] > 2000).sum())  # 53
-    print((pap_protein["Length"] > 3000).sum())  # 14
-    print((pap_protein["Length"] > 4000).sum())  # 7
+    print((pap_protein["Length"] > 2000).sum())  # 53 - 61
+    print((pap_protein["Length"] > 3000).sum())  # 14 - 17
+    print((pap_protein["Length"] > 4000).sum())  # 7 - 8
     print((pap_protein["Length"] > 5000).sum())  # 2
     print((pap_protein["Length"] > 7000).sum())  # 2
     # analyse_protein_distribution(pap_protein)
@@ -191,6 +189,12 @@ def filter_papyrus():
     Papyrus selection shape: (123236, 2)
     #molecules 22383
     #proteins  2537
+    
+    -
+    
+    Papyrus selection shape: (182129, 2)
+    #molecules 56991
+    #proteins  2945
     """
 
 

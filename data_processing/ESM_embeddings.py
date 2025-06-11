@@ -1,4 +1,3 @@
-import pickle
 import time
 
 import pandas as pd
@@ -7,6 +6,7 @@ from transformers import AutoModelForMaskedLM
 
 
 def get_aminoacid_sequences():
+    """Reads in the amino acid dequences from Papyrus++"""
     df = pd.read_csv(r"../data/papyrus/05.6_combined_set_protein_targets.tsv.xz", sep="\t")
     df = df.sort_values(by="Length", ascending=True)
     df = df[['Sequence', 'target_id']]
@@ -15,6 +15,7 @@ def get_aminoacid_sequences():
 
 
 def get_batch_indices(df, max_batch_size):
+    """Groups the indices in batches of amino acids chains of equal length."""
     batch_indices = []
 
     prev_length = -1
@@ -32,49 +33,53 @@ def get_batch_indices(df, max_batch_size):
     return batch_indices
 
 
+# Chose the size of ESM you want to run
 # model_id = "Synthyra/ESMplusplus_small"
 model_id = "Synthyra/ESMplusplus_large"
 
+# Set up model
 model = AutoModelForMaskedLM.from_pretrained(model_id, trust_remote_code=True)
 tokenizer = model.tokenizer
 
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# model.to(device)  # Moves model to GPU (if available)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)  # Moves model to GPU (if available)
 
-# Example protein sequences
-df = get_aminoacid_sequences()  # [:4]
+# Get amino acids and set parameters
+df = get_aminoacid_sequences()
 print(len(df.iloc[0]['Sequence']), len(df.iloc[0]['Sequence']))
 
 max_batch_size = 8
 batch_indices = get_batch_indices(df, max_batch_size)
-start_index = 7176  # batch_indices[0]
+start_index = batch_indices[0]
 
+# Initialize the embeddings dictionary and start loop
 embedding_dict = {}
 start_time = time.time()
 for i_batch, end_index in enumerate(batch_indices[batch_indices.index(start_index)+1:]):
     print("Batch", i_batch)
     batch_start_time = time.time()
 
+    # Ensures slicing of the batches work properly for the last batch
     if end_index == -1:
         batch_df = df[start_index:]
     else:
         batch_df = df[start_index:end_index]
 
-    # Combined (pdb_id + chain_id) as identifier:
     x_ids = (batch_df["target_id"]).values
     x_sequences = batch_df["Sequence"].values
     for i in range(end_index-start_index):
         print(len(x_sequences[i]), x_sequences[i])
 
+    # Run model
     tokenized_sequences = model.tokenizer(
         x_sequences.tolist(),
         padding=True,
         return_tensors="pt"
-    )  # .to(device)
-
+    )
     with torch.no_grad():
         output = model(**tokenized_sequences)
 
+    # Store embeddings in dict and print intermediate results
     y_embeddings = output.last_hidden_state
     batch_end_time = time.time()
     print(y_embeddings.shape)
@@ -82,32 +87,19 @@ for i_batch, end_index in enumerate(batch_indices[batch_indices.index(start_inde
     print(f"Total time:{batch_end_time - start_time:6.3f}, Batch time:{batch_end_time - batch_start_time:6.3f}")
     print()
 
-    # Save to file:
     for x_id, y_emb in zip(x_ids, y_embeddings):
         embedding_dict[x_id] = y_emb
 
-    """# I will save each batch separately for now, and deal with concatenation in a later step
-    with open(f"data/_esm_large/esm_embeddings_batch_{start_index}_{end_index}_{len(x_sequences[i])}.pkl", "wb") as f:
-        pickle.dump((x_ids, y_embeddings), f)"""
-
+    # Intermediate save
     if i_batch % 250 == 0:
         torch.save(embedding_dict, f"data/_esm_large/embeddings_{end_index}_{len(x_sequences[i])}.pth")
-        pass
     start_index = end_index
 
-torch.save(embedding_dict, "../embeddings.pth")
+# Save all embeddings
+torch.save(embedding_dict, "data/_esm_large/embeddings.pth")
 
-loaded_embeddings = torch.load("../embeddings.pth")
+# Load the stored embeddings as a test
+loaded_embeddings = torch.load("data/_esm_large/embeddings.pth")
 for i, key in enumerate(loaded_embeddings.keys()):
     if i < 200:
         print(key, loaded_embeddings[key].shape)
-
-"""# torch.set_printoptions(threshold=float('inf'), linewidth=20000)
-with open("data/_esm_small/esm_embeddings_batch_0.pkl", "rb") as f:
-    x_ids, y_embeddings = pickle.load(f)
-    for x_id, y_emb in zip(x_ids, y_embeddings):
-        print(x_id)
-        print(y_emb.shape)
-        print(y_emb)
-# default_print_options = torch.get_printoptions()
-# torch.set_printoptions(**default_print_options)"""
